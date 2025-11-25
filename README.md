@@ -7,6 +7,7 @@ In this training you will create visualizations and logging to determine the acc
 [output.webm](https://github.com/user-attachments/assets/1d7bc3bb-b839-484e-9fd0-1a842f532db3)
 
 - __in order to complete this assignment please ask the Autonomy lead to invite you to the Foxglove studio organization__
+- __in order to complete this assignment please ask the Autonomy Lead to invite you to the main TR github organization__ (you will not be able to clone all submodules without this)
 - This assignment is hard, and a big step up from the previous trainings. If you get stuck you are encourage to talk about your problems and collaborate with fellow recruits in the #auto-support discord channel
 - If you do not have much prior experience with robotics [this lecture](https://www.youtube.com/watch?v=jht6k_7LPzY) might be helpful to familiarize yourself with some basic concepts and vocabulary.
 
