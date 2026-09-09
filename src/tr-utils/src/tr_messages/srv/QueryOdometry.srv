@@ -1,0 +1,9 @@
+# Request: timestamp to query
+builtin_interfaces/Time query_time
+
+---
+
+# Response: closest odometry message and success status
+nav_msgs/Odometry odometry
+bool success
+string message

@@ -1,0 +1,28 @@
+# Python dependencies for the TR-Autonomy-3 training workspace.
+# Install with:  pip install -r requirements.txt
+#
+# On an Apple-silicon Mac running an Ubuntu VM, do NOT use this file for the
+# simulator: follow docs/MAC_SETUP.md (the `mac-arm64` branch) instead.
+
+# --- simulator (sim_node) ---------------------------------------------------
+mani_skill==3.0.0b22
+torch
+pynput==1.8.1
+coacd
+numpy>=1.22,<2
+
+# --- HuskyBot CV (mirrors src/tr-huskybot-cv/requirements.txt) --------------
+# onnxruntime-gpu is only useful with an NVIDIA GPU; the CPU build works
+# everywhere and HuskyBot only ever selects the CPU execution provider.
+onnxruntime
+# cv_bridge (ROS Humble) is not compatible with OpenCV 5 (KeyError in cv2_to_imgmsg)
+opencv-python<5
+pyserial
+line-profiler
+
+# --- colcon build deps for ament_python packages -----------------------------
+catkin_pkg
+empy==3.3.4
+lark
+PyYAML
+setuptools

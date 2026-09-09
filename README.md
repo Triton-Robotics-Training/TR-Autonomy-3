@@ -1,4 +1,4 @@
-# tr-autonomy-training-visualization
+# TR-Autonomy03
 
 ## Introduction
 
@@ -7,9 +7,19 @@ In this training you will create visualizations and logging to determine the acc
 [output.webm](https://github.com/user-attachments/assets/1d7bc3bb-b839-484e-9fd0-1a842f532db3)
 
 - __in order to complete this assignment please ask the Autonomy lead to invite you to the Foxglove studio organization__
-- __in order to complete this assignment please ask the Autonomy Lead to invite you to the main TR github organization__ (you will not be able to clone all submodules without this)
+- __in order to complete this assignment please ask the Autonomy Lead to invite you to the main TR github organization__ (you will not be able to clone the HuskyBot submodule without this)
 - This assignment is hard, and a big step up from the previous trainings. If you get stuck you are encourage to talk about your problems and collaborate with fellow recruits in the #auto-support discord channel
 - If you do not have much prior experience with robotics [this lecture](https://www.youtube.com/watch?v=jht6k_7LPzY) might be helpful to familiarize yourself with some basic concepts and vocabulary.
+
+> ### Apple-silicon Mac users (Ubuntu VM on M1/M2/M3/M4)
+>
+> The simulator's physics engine (SAPIEN) has no prebuilt package for ARM64 Linux, so `pip install mani_skill` will fail inside your VM. Use the __`mac-arm64`__ branch of this repository instead:
+>
+> ```bash
+> git clone -b mac-arm64 <this repo>
+> ```
+>
+> and follow its [docs/MAC_SETUP.md](https://github.com/Triton-Robotics-Training/TR-Autonomy-3/blob/mac-arm64/docs/MAC_SETUP.md). The assignment itself (Parts 1 to 3 below) is identical.
 
 ## Learning objectives
 
@@ -25,15 +35,25 @@ In this training you will create visualizations and logging to determine the acc
 ## Getting oriented
 
 1. clone this repository
-2. run `git submodule update --init` in the root dir of this repo
-3. your workspace should look similar to the following. Make sure the submodule directories are not empty and are initialized with files
+2. run `git submodule update --init` in the root dir of this repo (this pulls in HuskyBot; the simulator and message packages are checked in directly)
+3. your workspace should look like the following. Make sure `src/tr-huskybot-cv` is not empty
 
-![workspace with submodules initialized](.md/workspace_structure.png)
+```
+TR-Autonomy-3/
+├── requirements.txt
+└── src/
+    ├── tr-huskybot-cv/            # submodule: the HuskyBot CV stack
+    ├── tr-simulation-maniskill/   # sim_node: the TR ManiSkill simulator (copied from tr-autonomy-comp-2026)
+    └── tr-utils/src/
+        ├── tr_messages/           # custom TR msg/srv interfaces
+        └── shm/                   # shared-memory helper lib the simulator links against
+```
 
 4. install dependencies
-    - ros dependencies: `rosdep install -i --from-path src --rosdistro humble -y`
-    - install [maniskill](https://github.com/haosulab/ManiSkill?tab=readme-ov-file#installation). Look at the installation instructions in the README
-    - huskybot dependencies: `pip install -r src/tr-huskybot-cv/requirements.txt`
+    - ros dependencies: `rosdep install -i --from-path src --rosdistro humble -y --skip-keys python3-pynput`
+    - python dependencies (simulator + HuskyBot): `pip install -r requirements.txt`
+      - this installs ManiSkill, torch, coacd and the CPU build of onnxruntime. If you have an NVIDIA GPU and want GPU inference you may `pip install onnxruntime-gpu` instead, but it is not required for this training.
+      - if you prefer a virtual environment, create it with `python3 -m venv .venv && source .venv/bin/activate` __before__ installing and before every `colcon build`. Be aware that `ros2 run huskybot_cv huskybot_cv` starts HuskyBot with the system interpreter, which cannot see your venv. In that case start it with `python3 $(ros2 pkg prefix huskybot_cv)/lib/huskybot_cv/huskybot_cv --ros-args -p use_sim_time:=true` instead. Installing without a venv (`pip install --user`) avoids this.
 5. run `colcon build`
 6. run each of the following commands __IN THEIR OWN terminal__ (you can have one terminal window and use multiple tabs, or create multiple terminals in vscode)
 
@@ -44,22 +64,24 @@ you can try launching the simulator in cpu render mode with a ros parameter
 `ros2 launch sim_node sim_node_launch.py "cv_exposure:=0.8" "cpu_sim:=true"`
 
 ```bash
-# run each in its own terminal. Remember to source ros (source /opt/ros/humble/setup.bash and source the workspace (source install/setup.bash) in each terminal before every command below
+# run each in its own terminal. Remember to source ros (source /opt/ros/humble/setup.bash) and source the workspace (source install/setup.bash) in each terminal before every command below
 
 # this or the cpu render mode
 ros2 launch sim_node sim_node_launch.py "cv_exposure:=0.8"
 
 ros2 run huskybot_cv huskybot_cv --ros-args -p "use_sim_time:=true"
 
-ros2 run sim_node keyboard_controls
+ros2 run sim_node keyboard_controls.py
 ```
+
+Note: the first launch of the simulator can take a couple of minutes while it convex-decomposes the arena meshes. It is not hung.
 
 Whoa! there's a lot going on. Lets figure out what all those windows are.
 
 This is the human gui for the simulator. You can use wasd and right click drag to control the camera
 ![simulation gui](.md/simulation_gui.png)
 
-Try flying around the environment and using the teleop keyboard controls to control the robots! You can learn more about the teleop controls in the [simulation repo README](https://github.com/Triton-Robotics/Simulation-ManiSkill).
+Try flying around the environment and using the teleop keyboard controls to control the robots! You can learn more about the teleop controls in the [simulator README](src/tr-simulation-maniskill/README.md#keyboard-controls).
 
 Note: You might notice the robots move slower than you expected, this is a side effect of the fact that the simulation might not be running in real time. Each simulation step simulates the passage of 6ms of time. However your machine might take longer than 6ms to simulate that 6ms passage of time. To learn more about how we synchronize the rest of our nodes to this simulation time [read this article](https://design.ros2.org/articles/clock_and_time.html)
 
@@ -85,7 +107,7 @@ You must broadcast the following transforms:
 - the ground truth camera pose of the __PRIMARY robot__ from `simulation/ground_truth`
 - the ground truth armor panel positions of the __SECONDARY robot__ from `simulation/ground_truth`
 
-You can find the msg types that correspond to those topics in `utils > src > tr_messages > msg`.
+You can find the msg types that correspond to those topics in `src/tr-utils/src/tr_messages/msg`. (The ground truth message also carries a `third_robot` and `fourth_robot`; they are unused in the default 1v1 scenario and you can ignore them.)
 
 helpful links for msg interfaces
 
@@ -146,7 +168,7 @@ looking at the message definition we have
 # You can alternatively change the default value in the sim_node_launch.py file to these values so you don't need to override them manually in the command line
 ros2 launch sim_node sim_node_launch.py "human_gui:=false" "cv_exposure:=0.8"
 
-ros2 run sim_node keyboard_controls 
+ros2 run sim_node keyboard_controls.py
 
 ros2 run huskybot_cv huskybot_cv --ros-args -p "use_sim_time:=true"
 
@@ -161,7 +183,7 @@ ros2 run your_solution tf_broadcaster --ros-args -p "use_sim_time:=true"
 
 ![file structure](.md/calc_error_file_structure.png)
 
-2. Modify your `setup.py` to add a new "entry point" to the your solution package so you can run `ros2 run your_solution calc_error`. (you can look at the setup.py of the simulation-maniskill package if you are stuck)
+2. Modify your `setup.py` to add a new "entry point" to the your solution package so you can run `ros2 run your_solution calc_error`. (you can look at the `setup.py` of the `huskybot_cv` package in `src/tr-huskybot-cv` if you are stuck; the simulator package is `ament_cmake`, so its layout is different)
 
 3. Listen to the transforms from the node you wrote in part 1 and use it to calculate the positional error between detected_panel and the four ground truth panels
 
@@ -189,11 +211,11 @@ You may have felt how cumbersome it was to run each node in a separate terminal.
 
 nodes to launch:
 
-- `sim_node keyboard_controls`
+- `sim_node keyboard_controls.py`
 - `huskybot_cv huskybot_cv` with `use_sim_time = true`
 - `your_solution tf_broadcaster` with `use_sim_time = true`
 - `your_solution calc_error` with `use_sim_time = true`
-- (`sim_node sim_node` by invoking the `sim_node_launch.py` launch file)
+- (`sim_node main.py` by invoking the `sim_node_launch.py` launch file)
 
 3. Test your launch file and use foxglove to confirm everything is still working correctly.
 
@@ -208,3 +230,9 @@ nodes to launch:
 - __use_sim_time:=true__. This must be set to true for the appropriate nodes. Forgetting this can cause problems
 - when creating new packages or creating/deleting new files, running `colcon build` does not remove old files or paths that are no longer being used. Its a good idea to run `rm -r build/ install/ log/` and then run `colcon build` if you modify the file structure
 - the `plot` panel in foxglove can have weird behavior if the y-axis scale is set to `auto` consider manually setting a lower and upper bound if your plot is behaving weirdly
+- always start the simulator through `ros2 launch sim_node sim_node_launch.py`, not `ros2 run sim_node main.py`. The launch file sets up the environment the simulator's Python process needs (see the comment at the top of `src/tr-simulation-maniskill/launch/sim_node_launch.py`)
+- the keyboard teleop node (`keyboard_controls.py`) grabs keys with `pynput`, which needs an X11 session. If the robots ignore your keys on Ubuntu 22.04, log out and pick "Ubuntu on Xorg" on the login screen instead of the default Wayland session
+
+## Keeping the simulator in sync with the main stack
+
+`src/tr-simulation-maniskill` and `src/tr-utils/src/{tr_messages,shm}` are plain copies of the same directories in the [tr-autonomy-comp-2026](https://github.com/Triton-Robotics/tr-autonomy-comp-2026) repository (`main` branch). They are not submodules anymore. To update them, copy the directories over from a fresh checkout of the comp repo and re-apply the small `_torch_lib_env` addition in `launch/sim_node_launch.py` if upstream has not picked it up yet.

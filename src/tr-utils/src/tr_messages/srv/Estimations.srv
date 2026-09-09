@@ -1,0 +1,17 @@
+builtin_interfaces/Time request_time 
+---
+geometry_msgs/Pose infantry_center
+geometry_msgs/PoseWithCovarianceStamped infantry_center_covariance
+builtin_interfaces/Time infantry_stamp
+tr_messages/Panels infantry_robot
+
+geometry_msgs/Pose hero_center
+geometry_msgs/PoseWithCovarianceStamped hero_center_covariance
+builtin_interfaces/Time hero_stamp
+tr_messages/Panels hero_robot
+
+
+geometry_msgs/Pose sentry_center
+geometry_msgs/PoseWithCovarianceStamped sentry_center_covariance
+builtin_interfaces/Time sentry_stamp
+tr_messages/Panels sentry_robot
