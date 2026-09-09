@@ -1,0 +1,22 @@
+# Python deps for the mac-arm64 branch, EXCLUDING the simulator stack.
+# SAPIEN/ManiSkill/torch/coacd are installed by tools/setup_arm_sim.sh; do not
+# pip install mani_skill or torch by hand on ARM64 (see docs/MAC_SETUP.md).
+#
+#   pip install -r requirements-arm.txt
+
+# --- HuskyBot CV (CPU inference) ---------------------------------------------
+# src/tr-huskybot-cv/requirements.txt pins onnxruntime-gpu, which has no
+# Python 3.10 ARM64 wheel. HuskyBot only selects CPUExecutionProvider anyway.
+onnxruntime
+# cv_bridge (ROS Humble) is not compatible with OpenCV 5 (KeyError in cv2_to_imgmsg)
+opencv-python<5
+numpy>=1.22,<2
+pyserial
+line-profiler
+
+# --- colcon build deps for ament_python packages -----------------------------
+catkin_pkg
+empy==3.3.4
+lark
+PyYAML
+setuptools

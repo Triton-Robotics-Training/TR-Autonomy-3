@@ -61,34 +61,9 @@ def generate_launch_description():
             "cpu_sim",
             default_value="false",
         ),
-        # One argument per opponent: the node declares robot_opponent_1..3 and
-        # never reads a singular `robot_opponent`, so the old spelling silently
-        # left all three at their defaults.
         DeclareLaunchArgument(
-            "robot_opponent_1",
+            "robot_opponent",
             default_value="infantry",
-        ),
-        DeclareLaunchArgument(
-            "robot_opponent_2",
-            default_value="sentry",
-        ),
-        DeclareLaunchArgument(
-            "robot_opponent_3",
-            default_value="hero",
-        ),
-        DeclareLaunchArgument(
-            "seed",
-            default_value="2930",
-        ),
-        # Referee state. game_state 4 is GAME_STATUS_IN_COMPETITION, which is
-        # what the sentry state machine waits for before it will drive.
-        DeclareLaunchArgument(
-            "game_state",
-            default_value="0",
-        ),
-        DeclareLaunchArgument(
-            "robot_hp",
-            default_value="400",
         ),
         # ---
         # CV Camera parameters
@@ -111,24 +86,6 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "cv_ray_tracing",
             default_value="false",
-        ),
-        # ---
-        # Overhead capture, for CI review media. Off by default: it is an extra
-        # render pass per step. Declared here as well as in the node because
-        # `ros2 launch` rejects an undeclared argument outright, so a scenario
-        # passing enable_overhead_cam:=true would otherwise fail every run
-        # rather than quietly getting no picture.
-        DeclareLaunchArgument(
-            "enable_overhead_cam",
-            default_value="false",
-        ),
-        DeclareLaunchArgument(
-            "overhead_cam_height",
-            default_value="14.0",
-        ),
-        DeclareLaunchArgument(
-            "overhead_cam_resolution",
-            default_value="480",
         ),
         DeclareLaunchArgument(
             "cv_resolution_x",
@@ -173,23 +130,13 @@ def generate_launch_description():
                 "cv_fov_horizontal": LaunchConfiguration("cv_fov_horizontal"),
                 "cv_fov_vertical": LaunchConfiguration("cv_fov_vertical"),
                 "cv_ray_tracing": LaunchConfiguration("cv_ray_tracing"),
-                "enable_overhead_cam": LaunchConfiguration("enable_overhead_cam"),
-                "overhead_cam_height": LaunchConfiguration("overhead_cam_height"),
-                "overhead_cam_resolution": LaunchConfiguration(
-                    "overhead_cam_resolution"
-                ),
                 "cv_resolution_x": LaunchConfiguration("cv_resolution_x"),
                 "cv_resolution_y": LaunchConfiguration("cv_resolution_y"),
                 "enable_lidar": LaunchConfiguration("enable_lidar"),
                 "lidar_pointcloud_resolution": LaunchConfiguration(
                     "lidar_pointcloud_resolution"
                 ),
-                "robot_opponent_1": LaunchConfiguration("robot_opponent_1"),
-                "robot_opponent_2": LaunchConfiguration("robot_opponent_2"),
-                "robot_opponent_3": LaunchConfiguration("robot_opponent_3"),
-                "seed": LaunchConfiguration("seed"),
-                "game_state": LaunchConfiguration("game_state"),
-                "robot_hp": LaunchConfiguration("robot_hp"),
+                "robot_opponent": LaunchConfiguration("robot_opponent"),
                 "use_sim_time": LaunchConfiguration("use_sim_time"),
             }
         ],

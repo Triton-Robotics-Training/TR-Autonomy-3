@@ -15,7 +15,6 @@ from sensor_msgs.msg import Image
 from sim_node import simulation
 
 from sensor_msgs.msg import Image, PointCloud2, PointField
-from std_msgs.msg import Float64MultiArray
 from std_msgs.msg import Header
 from sensor_msgs_py import point_cloud2  # pointcloud utilizes
 from rosgraph_msgs.msg import Clock
@@ -32,7 +31,7 @@ from torch import Tensor
 from sim_node.simulation import SPAWN_SCENARIO_KEYFRAME_MAPPING
 
 from mani_skill.utils.structs import SimConfig
-from sim_node.ARC2026_env import ARC2026EnvConfig, OVERHEAD_CAMERA_UID
+from sim_node.ARC2026_env import ARC2026EnvConfig
 
 
 class Sim_Node(Node):
@@ -50,13 +49,6 @@ class Sim_Node(Node):
         # TODO add ray tracing config values as ros params
         # TODO add cv camera matrix parameter
 
-        # Overhead capture, for the CI review animation. Off by default: it
-        # costs a render pass per step, so only scenarios that want the
-        # picture should turn it on.
-        self.declare_parameter("enable_overhead_cam", False)
-        self.declare_parameter("overhead_cam_height", 14.0)
-        self.declare_parameter("overhead_cam_resolution", 480)
-
         # lidar params
         self.declare_parameter("enable_lidar", True)
         self.declare_parameter("lidar_pointcloud_resolution", 20)
@@ -70,10 +62,6 @@ class Sim_Node(Node):
         self.declare_parameter("game_state", 0)
         self.declare_parameter("robot_hp", 400)
         self.declare_parameter("cpu_sim", False)
-        # Episode seed. Was a literal in the Simulation() call, which meant
-        # varying it required editing source -- so CI could not run the same
-        # scenario at several seeds.
-        self.declare_parameter("seed", 2930)
         self.declare_parameter("robot_opponent_1", "infantry")
         self.declare_parameter("robot_opponent_2", "sentry")
         self.declare_parameter("robot_opponent_3", "hero")
@@ -140,16 +128,6 @@ class Sim_Node(Node):
         qos_profile = rclpy.qos.qos_profile_sensor_data
         qos_profile.depth = 1
         self.image_pub = self.create_publisher(Image, "camera/image", qos_profile)
-        self.overhead_image_pub = self.create_publisher(
-            Image, "simulation/overhead/image", qos_profile
-        )
-        # World -> pixel, 3x4 row-major. Published rather than derived so a
-        # consumer can draw world-frame geometry onto the frame without
-        # knowing anything about SAPIEN's camera conventions -- which is the
-        # part that is easy to get subtly, silently wrong.
-        self.overhead_projection_pub = self.create_publisher(
-            Float64MultiArray, "simulation/overhead/projection", 10
-        )
         self.robot_state_pub = self.create_publisher(
             EmbeddedRobotState, "/embedded_robot_state", qos_profile=qos_profile
         )
@@ -185,14 +163,7 @@ class Sim_Node(Node):
             SPAWN_SCENARIO_KEYFRAME_MAPPING[spawn_scenario]["fourth_robot"],
         ]
         self.blue = self.get_parameter("blue").value
-        # Honour the scenario's own keyframe for the ego robot, and let `blue`
-        # pick the side only where the scenario asked for a spawn. Overwriting
-        # it unconditionally made SPAWN_SCENARIO_KEYFRAME_MAPPING's
-        # primary_robot entry dead: center_1v1 says "default", meaning field
-        # centre, but every run started at the edge of the field facing a wall,
-        # with the opponent outside the camera's 29 degree field of view.
-        if robot_keyframes[0] in ("blue_spawn", "red_spawn"):
-            robot_keyframes[0] = "blue_spawn" if self.blue else "red_spawn"
+        robot_keyframes[0] = "blue_spawn" if self.blue else "red_spawn"
         # fmt: off
         arc2026_env_config = ARC2026EnvConfig(
             robot_keyframes=robot_keyframes,
@@ -203,9 +174,6 @@ class Sim_Node(Node):
             cv_resolution_y=                self.gp("cv_resolution_y").integer_value,
             cv_fov_horizontal=              self.gp("cv_fov_horizontal").double_value,
             cv_fov_vertical=                self.gp("cv_fov_vertical").double_value,
-            enable_overhead_cam=            self.gp("enable_overhead_cam").bool_value,
-            overhead_cam_height=            self.gp("overhead_cam_height").double_value,
-            overhead_cam_resolution=        self.gp("overhead_cam_resolution").integer_value,
             enable_lidar=                   self.gp("enable_lidar").bool_value,
             lidar_pointcloud_resolution=    self.gp("lidar_pointcloud_resolution").integer_value,
             robot_1=                          self.gp("robot_opponent_1").string_value,
@@ -215,7 +183,7 @@ class Sim_Node(Node):
         # fmt: on
 
         self.simulation = simulation.Simulation(
-            seed=self.gp("seed").integer_value,
+            seed=2930,
             cpu_sim=self.gp("cpu_sim").bool_value,
             human_gui=self.gp("human_gui").bool_value,
             sim_config=sim_config,
@@ -231,8 +199,6 @@ class Sim_Node(Node):
         self.last_recorded_robot_state = utils.robot_state()
 
         self.cv_bridge = CvBridge()
-        # The overhead camera is static, so its projection is computed once.
-        self.overhead_projection_msg = None
 
     def simulation_callback(self):
         start = time.perf_counter()
@@ -292,9 +258,6 @@ class Sim_Node(Node):
             self.image_pub.publish(img_msg)
             t2 = time.perf_counter()
             sim_ground_truth_msg.cv_pub = (t2 - t1) * 1000
-
-        if self.gp("enable_overhead_cam").bool_value:
-            self.publish_overhead(obs)
 
         if self.get_parameter("enable_lidar").get_parameter_value().bool_value:
             t1 = time.perf_counter()
@@ -445,19 +408,9 @@ class Sim_Node(Node):
     def write_chassis_callback(self, msg):
         msg: WriteChassis
         self.control_mode = "programmatic"
-        # Same normalization as write_robot_state and the teleop callbacks:
-        # maniskill's velocity action space is [-1, 1]. Feeding raw SI values
-        # in here made this path, the one the autonomy stack actually uses,
-        # spin 4.5x faster than every other input for the same command.
-        self.programmatic_desired_robot_state.x_vel = (
-            msg.x_vel / constants.MAX_TRANSLATION_VEL_M_S
-        )
-        self.programmatic_desired_robot_state.y_vel = (
-            msg.y_vel / constants.MAX_TRANSLATION_VEL_M_S
-        )
-        self.programmatic_desired_robot_state.angular_vel = (
-            msg.angular_vel / constants.MAX_ANGULAR_VEL_RADS_S
-        )
+        self.programmatic_desired_robot_state.x_vel = msg.x_vel
+        self.programmatic_desired_robot_state.y_vel = msg.y_vel
+        self.programmatic_desired_robot_state.angular_vel = msg.angular_vel
 
     # TODO refactor the whole teleop vs "programmatic" input stuff
     # everything should publish to the same topic (WriteChassis and WriteGimbal)
@@ -533,59 +486,6 @@ class Sim_Node(Node):
 
         pc2_msg = point_cloud2.create_cloud(header, fields, point_iter)
         return pc2_msg
-
-    def overhead_projection(self):
-        """3x4 world -> pixel matrix for the overhead camera, or None.
-
-        ``extrinsic_cv`` is world -> camera in OpenCV convention and
-        ``intrinsic_cv`` is the pinhole K, so their product maps a homogeneous
-        world point straight to pixels. Taking both from ManiSkill rather than
-        rebuilding them from the camera pose is deliberate: the SAPIEN and
-        OpenCV frames differ, and a hand-rolled conversion that is wrong looks
-        exactly like a correct one until the overlay is a metre off.
-        """
-        if self.overhead_projection_msg is not None:
-            return self.overhead_projection_msg
-        try:
-            sensor = self.simulation.env.unwrapped._sensors[OVERHEAD_CAMERA_UID]
-            params = sensor.get_params()
-            intrinsic = params["intrinsic_cv"][0].numpy(force=True)
-            extrinsic = params["extrinsic_cv"][0].numpy(force=True)
-        except (AttributeError, KeyError, IndexError, TypeError) as exc:
-            self.get_logger().warn(f"no overhead projection: {exc}")
-            return None
-        matrix = (intrinsic @ extrinsic).astype(float)
-        msg = Float64MultiArray()
-        msg.data = [float(v) for v in matrix.reshape(-1)]
-        self.overhead_projection_msg = msg
-        return msg
-
-    def publish_overhead(self, obs):
-        """The overhead frame and its projection, best effort.
-
-        Review media must never be the reason a run fails, so anything missing
-        here is logged and skipped rather than raised.
-        """
-        try:
-            rgb_tensor = obs["sensor_data"][OVERHEAD_CAMERA_UID]["rgb"]
-        except (KeyError, TypeError):
-            return
-        rgb_array = rgb_tensor[0].numpy(force=True)
-        if rgb_array.shape[0] == 3:      # (C, H, W) -> (H, W, C)
-            rgb_array = rgb_array.transpose(1, 2, 0)
-        img_msg = self.cv_bridge.cv2_to_imgmsg(
-            rgb_array.astype("uint8"), encoding="rgb8"
-        )
-        img_msg.header.stamp = self.clock_msg.clock
-        img_msg.header.frame_id = "map"
-        self.overhead_image_pub.publish(img_msg)
-
-        projection = self.overhead_projection()
-        if projection is not None:
-            # Every frame, not once: the sampler may well subscribe after the
-            # simulator has already started publishing, and twelve doubles is
-            # not worth a latched-QoS subtlety to save.
-            self.overhead_projection_pub.publish(projection)
 
     def gp(self, ros_param: str):
         return self.get_parameter(ros_param).get_parameter_value()

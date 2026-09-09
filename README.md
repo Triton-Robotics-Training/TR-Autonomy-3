@@ -11,15 +11,9 @@ In this training you will create visualizations and logging to determine the acc
 - This assignment is hard, and a big step up from the previous trainings. If you get stuck you are encourage to talk about your problems and collaborate with fellow recruits in the #auto-support discord channel
 - If you do not have much prior experience with robotics [this lecture](https://www.youtube.com/watch?v=jht6k_7LPzY) might be helpful to familiarize yourself with some basic concepts and vocabulary.
 
-> ### Apple-silicon Mac users (Ubuntu VM on M1/M2/M3/M4)
+> ### You are on the `mac-arm64` branch (Apple-silicon Mac, Ubuntu 22.04 arm64 VM)
 >
-> The simulator's physics engine (SAPIEN) has no prebuilt package for ARM64 Linux, so `pip install mani_skill` will fail inside your VM. Use the __`mac-arm64`__ branch of this repository instead:
->
-> ```bash
-> git clone -b mac-arm64 <this repo>
-> ```
->
-> and follow its [docs/MAC_SETUP.md](https://github.com/Triton-Robotics-Training/TR-Autonomy-3/blob/mac-arm64/docs/MAC_SETUP.md). The assignment itself (Parts 1 to 3 below) is identical.
+> This branch carries the simulator from the comp repo's `onnx-arm-sim` branch plus `tools/setup_arm_sim.sh`, which builds the simulator's physics engine (SAPIEN) from source because it has no prebuilt package for ARM64 Linux. __Skip the "install dependencies" and "colcon build" steps in "Getting oriented" below and follow [docs/MAC_SETUP.md](docs/MAC_SETUP.md) instead.__ The assignment itself (Parts 1 to 3) is identical to the `main` branch, and native Linux users should use `main`.
 
 ## Learning objectives
 

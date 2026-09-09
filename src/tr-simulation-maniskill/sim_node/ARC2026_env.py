@@ -14,7 +14,6 @@ from mani_skill.sensors.depth_camera import StereoDepthCameraConfig, StereoDepth
 from mani_skill.sensors.camera import Camera
 from mani_skill.utils.structs.render_camera import RenderCamera
 from mani_skill.utils.structs.pose import Pose
-from mani_skill.utils.sapien_utils import look_at
 
 from mani_skill.utils.structs.types import SimConfig
 from mani_skill.utils.geometry.rotation_conversions import (
@@ -72,20 +71,6 @@ class ARC2026EnvConfig:
     robot_1: str
     robot_2: str
     robot_3: str
-    # Overhead capture, for CI review media. Off by default and deliberately
-    # so: it is an extra render pass on every step, and a scenario that does
-    # not want the picture should not pay for it.
-    enable_overhead_cam: bool = False
-    overhead_cam_height: float = 14.0
-    overhead_cam_resolution: int = 480
-
-
-#: Sensor uid of the overhead capture camera. Shared with ros_bridge, which
-#: looks the sensor up by this name to publish its projection matrix.
-OVERHEAD_CAMERA_UID = "overhead_camera"
-#: Vertical field of view. At the default 14 m height this sees about 14.5 m
-#: of floor, which covers the arena (spawns sit at y = +/-5.5) with margin.
-OVERHEAD_FOV_RAD = np.deg2rad(55.0)
 
 
 @register_env("ARC2026")
@@ -99,43 +84,6 @@ class ARC2026Env(BaseEnv):
         # self._parallel_in_single_scene = kwargs.get("parallel_in_single_scene", False)
 
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
-
-    @property
-    def _default_sensor_configs(self):
-        """A static camera looking straight down at the field, or nothing.
-
-        Not a human-render camera: those only produce frames when something
-        calls ``render()``, and headless CI never does. As a sensor it lands in
-        ``obs["sensor_data"]`` every step, which is where ros_bridge can reach
-        it.
-
-        `up` is +Y rather than the default +Z because eye and target differ
-        only in Z here, and look_at with a view direction parallel to `up` is
-        degenerate. +Y up means world +X runs right across the image and world
-        +Y runs up it, so the picture reads like the field diagram.
-        """
-        config = self.arc2026_env_config
-        if not getattr(config, "enable_overhead_cam", False):
-            return []
-        size = int(config.overhead_cam_resolution)
-        return [
-            CameraConfig(
-                uid=OVERHEAD_CAMERA_UID,
-                pose=look_at(
-                    eye=[0.0, 0.0, float(config.overhead_cam_height)],
-                    target=[0.0, 0.0, 0.0],
-                    up=[0.0, 1.0, 0.0],
-                ),
-                width=size,
-                height=size,
-                fov=OVERHEAD_FOV_RAD,
-                near=0.05,
-                far=100.0,
-                # Cheapest shader there is. This frame is a 480-pixel review
-                # animation, not something anything measures.
-                shader_pack="minimal",
-            )
-        ]
 
     def _get_obs_extra(self, info: Dict):
         return dict(
