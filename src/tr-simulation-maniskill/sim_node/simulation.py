@@ -18,6 +18,14 @@ SPAWN_SCENARIO_KEYFRAME_MAPPING: dict = dict(
         third_robot="third_target",
         fourth_robot="fourth_target",
     ),
+    # Ego robot turned to face the aiming target, and the two robots this
+    # scenario does not use parked off the field so they stay out of frame.
+    cv_training=dict(
+        primary_robot="facing_aiming_target",
+        secondary_robot="aiming_target",
+        third_robot="out_of_field",
+        fourth_robot="out_of_field",
+    ),
     navigate_from_spawn=dict(
         primary_robot="blue_spawn",
         secondary_robot="out_of_field",

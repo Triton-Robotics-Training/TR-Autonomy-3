@@ -58,6 +58,9 @@ class KeyboardControls(Node):
         )
         self.primary_robot_teleop_input = TeleopInput()
         self.secondary_robot_teleop_input = TeleopInput()
+        self.secondary_robot_teleop_input.angular_vel = (
+            constants.TARGET_START_ANGULAR_VEL_RADS_S
+        )
         self.third_robot_teleop_input = TeleopInput()
         self.fourth_robot_teleop_input = TeleopInput()
 

@@ -54,7 +54,7 @@ class Sim_Node(Node):
         self.declare_parameter("lidar_pointcloud_resolution", 20)
 
         # general simulation params
-        self.declare_parameter("spawn_scenario", "center_1v1")
+        self.declare_parameter("spawn_scenario", "cv_training")
         self.declare_parameter("human_gui", True)
         self.declare_parameter("control_freq", 150)
         self.declare_parameter("sim_freq", 300)
@@ -193,7 +193,10 @@ class Sim_Node(Node):
         self.control_mode = "programmatic"
         self.programmatic_desired_robot_state = utils.robot_state()
         self.teleop_desired_robot_state = utils.robot_state()
-        self.secondary_robot_teleop_desired_state = utils.robot_state()
+        self.secondary_robot_teleop_desired_state = utils.robot_state(
+            angular_vel=constants.TARGET_START_ANGULAR_VEL_RADS_S
+            / constants.MAX_ANGULAR_VEL_RADS_S
+        )
         self.third_robot_teleop_desired_state = utils.robot_state()
         self.fourth_robot_teleop_desired_state = utils.robot_state()
         self.last_recorded_robot_state = utils.robot_state()
