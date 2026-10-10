@@ -71,11 +71,16 @@ class EllipseRobot(BaseAgent):
 
     fourth_target_pos = sapien.Pose(p=[0.0, -1.8, 0.25], q=[1, 0, 0, 0])
 
+    # Parked well clear of the field, for scenarios that want the arena empty.
+    # The root link is fixed, so it stays put rather than falling off the floor.
+    out_of_field_pos = sapien.Pose(p=[20.0, 20.0, 0.25], q=[1, 0, 0, 0])
+
     keyframes = dict(
         default=Keyframe(pose=default_pos),
         aiming_target=Keyframe(pose=aiming_target_pos),
         third_target=Keyframe(pose=third_target_pos),
         fourth_target=Keyframe(pose=fourth_target_pos),
+        out_of_field=Keyframe(pose=out_of_field_pos),
     )
 
     base_joint_names = [

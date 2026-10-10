@@ -163,7 +163,12 @@ class Sim_Node(Node):
             SPAWN_SCENARIO_KEYFRAME_MAPPING[spawn_scenario]["fourth_robot"],
         ]
         self.blue = self.get_parameter("blue").value
-        robot_keyframes[0] = "blue_spawn" if self.blue else "red_spawn"
+        # Honour the scenario's own keyframe for the ego robot, and let `blue`
+        # pick the side only where the scenario asked for a spawn. Overwriting
+        # it unconditionally made SPAWN_SCENARIO_KEYFRAME_MAPPING's
+        # primary_robot entry dead.
+        if robot_keyframes[0] in ("blue_spawn", "red_spawn"):
+            robot_keyframes[0] = "blue_spawn" if self.blue else "red_spawn"
         # fmt: off
         arc2026_env_config = ARC2026EnvConfig(
             robot_keyframes=robot_keyframes,
