@@ -88,7 +88,9 @@ Note: You might notice the robots move slower than you expected, this is a side 
 This is the window that shows debug information about the Huskybot CV stack
 ![huskybot gui](.md/huskybot_gui.png)
 
-Try using the teleop controls you just learned to point the camera at the armor panel of the opposing robot that has a "3" sticker on it. You should see a bounding box be drawn when it is detected
+The simulator starts your robot facing the opposing robot that has a "3" sticker on it, and that robot starts out spinning slowly. You should see bounding boxes drawn on its armor panels as soon as HuskyBot is up. Use the number keys (`5` stops the spin, see the [keyboard controls](src/tr-simulation-maniskill/README.md#keyboard-controls)) and the rest of the teleop controls to change this up.
+
+(This is the `cv_training` spawn scenario, the launch default. The other two robots are parked off the field in this scenario. `spawn_scenario:=center_1v1` gives you the old layout, with your robot at field centre and all four robots on the field.)
 
 note: HuskyBot crops the image to be a square so armor panels at the extreme left or right edges of the image frame might not be detected. Try moving the opposing robot closer to the center of the frame if this is a problem
 
