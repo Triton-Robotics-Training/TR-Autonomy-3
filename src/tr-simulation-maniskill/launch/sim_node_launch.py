@@ -39,7 +39,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "spawn_scenario",
-            default_value="center_1v1",
+            default_value="cv_training",
         ),
         DeclareLaunchArgument(
             "blue",

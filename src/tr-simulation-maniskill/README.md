@@ -64,6 +64,8 @@ y = clockwise rotation
 
 ### Secondary robot
 
+The secondary robot starts out spinning at 25% counterclockwise, the same as pressing `4`. Press `5` to stop it.
+
 ```
 i = forward
 j = left

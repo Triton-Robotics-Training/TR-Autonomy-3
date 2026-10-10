@@ -10,6 +10,7 @@ from torch import Tensor
 from ament_index_python import get_package_share_directory
 import os
 from sim_node import constants
+from sim_node.ellipse_robot import EllipseRobot
 from mani_skill.render.shaders import ShaderConfig, default_position_texture_transform
 import torch
 
@@ -64,6 +65,19 @@ class InfantryRobot(BaseAgent):
     aiming_target_pos = sapien.Pose(p=[2, -3, 0.25], q=[1, 0, 0, 0])
     aiming_target_pos.set_rpy([np.deg2rad(90), 0, np.deg2rad(180)])
 
+    # Field centre, turned so the CV camera points straight at EllipseRobot's
+    # aiming_target keyframe. The camera looks along keyframe yaw - 90 degrees
+    # (the -90 comes from the URDF being modelled Y-up), hence the + 90 here.
+    facing_aiming_target_pos = sapien.Pose(p=[0, 0, 0.25], q=[1, 0, 0, 0])
+    _target_xy = EllipseRobot.aiming_target_pos.p[:2] - facing_aiming_target_pos.p[:2]
+    facing_aiming_target_pos.set_rpy(
+        [
+            np.deg2rad(90),
+            0,
+            np.arctan2(_target_xy[1], _target_xy[0]) + np.deg2rad(90),
+        ]
+    )
+
     blue_spawn_pos = sapien.Pose(p=[0, 5.5, 0.25], q=[1, 0, 0, 0])
     blue_spawn_pos.set_rpy([np.deg2rad(90), 0, np.deg2rad(45)])
 
@@ -73,6 +87,7 @@ class InfantryRobot(BaseAgent):
     keyframes = dict(
         default=Keyframe(pose=default_pos),
         aiming_target=Keyframe(pose=aiming_target_pos),
+        facing_aiming_target=Keyframe(pose=facing_aiming_target_pos),
         blue_spawn=Keyframe(pose=blue_spawn_pos),
         red_spawn=Keyframe(pose=red_spawn_pos),
     )
