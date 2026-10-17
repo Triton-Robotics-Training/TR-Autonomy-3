@@ -4,7 +4,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
-from turtlesim.msg import Pose
+from tr_messages.msg import DetWithImg
 from tr_messages.msg import SimGroundTruth
 
 def quaternion_from_euler(ai, aj, ak):
@@ -35,7 +35,7 @@ class TFBroadcaster(Node):
         super().__init__('tf_broadcaster')
 
         self.detectSub = self.create_subscription(
-            Pose, 
+            DetWithImg, 
             'detections', 
             self.detectCallback, 
             10)
@@ -51,15 +51,21 @@ class TFBroadcaster(Node):
     def detectCallback(self, msg):
         t = TransformStamped()
 
-        xx = msg.data.position.x
-        yy = msg.data.position.y
-        zz = msg.data.position.z
+        # Read message content and assign it to
+        # corresponding tf variables
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = 'map'
+        t.child_frame_id = 'detected_panel'
+
+        xx = msg.detection_info.detections[0].results[0].pose.pose.position.x
+        yy = msg.detection_info.detections[0].results[0].pose.pose.position.y
+        zz = msg.detection_info.detections[0].results[0].pose.pose.position.z
 
         t.transform.translation.x = xx
         t.transform.translation.y = yy
         t.transform.translation.z = zz
 
-        qData = msg.data.orientation
+        qData = msg.detection_info.detections[0].results[0].pose.pose.orientation
         q = [qData.x, qData.y, qData.z, qData.w]
 
         self.tf_broadcaster.sendTransform(t)
@@ -69,6 +75,12 @@ class TFBroadcaster(Node):
         # broadcasting the ground truth camera pose
         # PRIMARY robot
         t_prim = TransformStamped()
+
+        # Read message content and assign it to
+        # corresponding tf variables
+        t_prim.header.stamp = self.get_clock().now().to_msg()
+        t_prim.header.frame_id = 'map'
+        t_prim.child_frame_id = 'camera_frame'
 
         cam_pose = msg.primary_robot.camera_pose.position
         cam_xx = cam_pose.x
@@ -96,6 +108,21 @@ class TFBroadcaster(Node):
         t_sec_pan1 = TransformStamped()
         t_sec_pan2 = TransformStamped()
         t_sec_pan3 = TransformStamped()
+
+        # Read message content and assign it to
+        # corresponding tf variables
+        t_sec_pan1.header.stamp = self.get_clock().now().to_msg()
+        t_sec_pan1.header.frame_id = 'map'
+        t_sec_pan1.child_frame_id = 'panel_1'
+
+        t_sec_pan2.header.stamp = self.get_clock().now().to_msg()
+        t_sec_pan2.header.frame_id = 'map'
+        t_sec_pan2.child_frame_id = 'panel_2'
+
+        t_sec_pan3.header.stamp = self.get_clock().now().to_msg()
+        t_sec_pan3.header.frame_id = 'map'
+        t_sec_pan3.child_frame_id = 'panel_3'        
+
 
         pan1_pose = msg.secondary_robot.armor_panel_poses[0].position
         pan2_pose = msg.secondary_robot.armor_panel_poses[1].position
@@ -158,10 +185,12 @@ def main(args=None):
     rclpy.init(args=args)
     
     broadcaster = TFBroadcaster()
-    
-    rclpy.spin(broadcaster)
+    try:
+        rclpy.spin(broadcaster)
+    except KeyboardInterrupt:
+        pass
 
-    tf_broadcaster.destroy_node()
+    broadcaster.destroy_node()
     
     rclpy.shutdown()
 
