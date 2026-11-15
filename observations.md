@@ -1,0 +1,6 @@
+- with the spin stopped the error stays small and pretty steady
+- x err is always the biggest one since its the depth guess and solvepnp is worst at depth
+- moving the robot farther away makes x err a lot noisier
+- faster spin makes all three jumpier
+- the big x err spikes happen when a panel turns almost sideways
+- panels near the left or right edge get cropped so detections drop out and the plot just stops
