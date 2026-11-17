@@ -1,0 +1,9 @@
+ - The pattern of of error changing stays the same if one of the robots is just rotating and the other one stays stil
+ - The pattern for the error of z is almost like a sine graph - not jagged
+ - The error of the z data is a lot more
+ - The error didn't change when moved robot backward
+ - Spikes in the error are farther apart when the robot is spinning slower
+ - Spikes are more in clusters when the robot is closer
+ - With no rotation, the size of the spikes is the same and the baseline level of error is the same too
+ - The error is usually going up when the robot is on the short side and going down when the robot is on the long side 
+ - The error for x and y unexpectedly jumps whenever one of the numbers stops being visible and a new number becomes visible
