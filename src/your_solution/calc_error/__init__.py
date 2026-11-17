@@ -25,7 +25,11 @@ class FrameListener(Node):
             10)
         # Declare and acquire `target_frame` parameter
         self.detected_pane= self.declare_parameter(
-        'target_frame', 'detected_pane1').get_parameter_value().string_value
+        'target_frame', 'detected_panel').get_parameter_value().string_value
+        self.goal= self.declare_parameter(
+        'target_frame2', 'map').get_parameter_value().string_value
+        self.camera= self.declare_parameter(
+        'target_frame3', 'camera_frame').get_parameter_value().string_value
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -39,10 +43,33 @@ class FrameListener(Node):
         #self.timer = self.create_timer(1.0, self.on_timer)
 
     def callback_truth (self, msg):
+        if not self.detected_pane:
+            self.get_logger().info('No detected_pane')
+            return
+        if not self.goal:
+            self.get_logger().info('No map')
+            return
+        # if not self.tf_buffer.can_transform (self.camera, self.detected_pane, rclpy.time.Time()):
+        #     self.get_logger().info('Can not be transformed')
+        #     return
+        self.get_logger().info('Was not returned')
+        ok, reason = self.tf_buffer.can_transform(
+            self.camera,
+            self.detected_pane,
+            rclpy.time.Time(),
+            return_debug_tuple=True
+            )
+        if not ok:
+            self.get_logger().warn(f'Cannot transform: {reason}')
+            return
         t = self.tf_buffer.lookup_transform(
-                    'map', #to
+                    self.goal, #to
                     self.detected_pane,  #from
                     rclpy.time.Time())
+        # t = self.tf_buffer.lookup_transform(
+        #             self.goal, #to
+        #             i,  #from
+        #             rclpy.time.Time())
         x0 = msg.secondary_robot.armor_panel_poses[0].position.x
         y0 = msg.secondary_robot.armor_panel_poses[0].position.y
         z0 = msg.secondary_robot.armor_panel_poses[0].position.z
